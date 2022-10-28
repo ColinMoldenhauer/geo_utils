@@ -8,12 +8,12 @@ import shapely.validation
 from shapely.geometry import Polygon, LineString
 
 
-def df2points(df):
+def df2pointsCM(df):
     points = np.array(df.apply(lambda row: [row["@lat"], row["@lon"]], axis=1).to_list())
     return points
 
 
-def osmdict2points(data):
+def osmdict2pointsCM(data):
     points = []
     for el in data["elements"]:
         if el["type"] == "node":
@@ -26,7 +26,7 @@ def osmdict2points(data):
     return np.array(points)
 
 
-def geodict2points(data):
+def geodict2pointsCM(data):
     points = []
     for el in data["elements"]:
         lon, lat = el["geometry"]["coordinates"]
@@ -34,7 +34,7 @@ def geodict2points(data):
     return np.array(points)
 
 
-def data2points(data):
+def data2pointsCM(data):
     if isinstance(data, dict):
         if data["elements"][0]["type"] in ["node", "way", "relation"]:
             points = osmdict2points(data)
@@ -45,14 +45,14 @@ def data2points(data):
     return points
 
 
-def save_points(points, filename, overwrite=False):
+def save_pointsCM(points, filename, overwrite=False):
     if not os.path.exists(filename) or overwrite:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as fp:
             pickle.dump(points, fp)
 
 
-def geotransform_points(points, crs_in="EPSG:4326", crs_out="EPSG:3857"):
+def geotransform_pointsCM(points, crs_in="EPSG:4326", crs_out="EPSG:3857"):
     points = geopandas.points_from_xy([p[0] for p in points], [p[1] for p in points])
     data = geopandas.GeoSeries(points, crs=crs_in)
     data_out = data.to_crs(crs_out)
@@ -60,7 +60,7 @@ def geotransform_points(points, crs_in="EPSG:4326", crs_out="EPSG:3857"):
     return points_out
 
 
-def points_to_geojson(points, file, to_polygon=False, crs="EPSG:3857"):
+def points_to_geojsonCM(points, file, to_polygon=False, crs="EPSG:3857"):
     assert file.endswith("json"), "File must be a json!"
     if isinstance(points, list):
         points = geopandas.points_from_xy([p[0] for p in points], [p[1] for p in points])
@@ -69,7 +69,7 @@ def points_to_geojson(points, file, to_polygon=False, crs="EPSG:3857"):
     data.to_file(file, driver='GeoJSON')
 
 
-def points_to_geojson_old(points, file, crs="EPSG:3857"):
+def points_to_geojson_oldCM(points, file, crs="EPSG:3857"):
     points = geopandas.points_from_xy([p[0] for p in points], [p[1] for p in points])
     data = geopandas.GeoSeries(points, crs=crs)
     json_str = data.to_json()
@@ -77,23 +77,23 @@ def points_to_geojson_old(points, file, crs="EPSG:3857"):
         f.write(json_str)
 
 
-def points_to_csv(points, name="", crs="EPSG:3857"):
+def points_to_csvCM(points, name="", crs="EPSG:3857"):
     points = geopandas.points_from_xy([p[0] for p in points], [p[1] for p in points])
     data = geopandas.GeoSeries(points, crs=crs)
     df = geopandas.GeoDataFrame({"x": data.x, "y": data.y})
     df.to_csv(name)
 
 
-def points_to_pickle(points, file):
+def points_to_pickleCM(points, file):
     with open(file, "wb") as f:
         pickle.dump(points, f)
 
 
-def points_from_pickle(file):
+def points_from_pickleCM(file):
     with open(file, "rb") as f:
         return pickle.load(f)
 
-def filter_points(points, h=None, v=None):
+def filter_pointsCM(points, h=None, v=None):
     # format points [lat lon]
     points = np.array(points)
     if h:
@@ -120,7 +120,7 @@ def filter_points(points, h=None, v=None):
     return points.tolist()
 
 
-def split_area(points, split_percentages, mode="h"):
+def split_areaCM(points, split_percentages, mode="h"):
     assert sum(split_percentages) == 1, "Sum of percentages must be 1!"
     eps = 1e-3
 

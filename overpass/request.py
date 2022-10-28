@@ -113,7 +113,7 @@ class OverpassRequest:
         print(";\n".join(query.split(";")))
 
 
-def get_area_bounding_points_check_order(area_name, filters, ignore_enclaves=False, verbose=True):
+def get_area_bounding_points_check_orderCM(area_name, filters, ignore_enclaves=False, verbose=True):
 
     ovp = OverpassRequest()
     ovp.set_json_format()

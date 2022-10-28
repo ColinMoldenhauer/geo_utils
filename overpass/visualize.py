@@ -2,7 +2,7 @@ import geopandas
 from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
 
-def plot_area_polygon(points, ax=None, crs=None, convert_crs=None, **plot_kwargs):
+def plot_area_polygonCM(points, ax=None, crs=None, convert_crs=None, **plot_kwargs):
     plot_defaults = {"color": "red",
                      "markersize": 1}
     plot_defaults.update(plot_kwargs)
