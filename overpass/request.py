@@ -131,92 +131,112 @@ def get_area_bounding_points_check_orderCM(area_name, filters, ignore_enclaves=F
     exclaves = []
     ignored = []
 
-    for i, m in enumerate(members):
-        if m["type"] == "node":
-            nodes.append([m["lon"], m["lat"]])
-        else:
-            curr_segm = [[p["lon"], p["lat"]] for p in m["geometry"]]
-            if len(points):
-                first = curr_segm[0]
-                f_inp = first in points
-                f_iprev = first == points[-1]
-                last = curr_segm[-1]
-                l_inp = last in points
-                l_iprev = last == points[-1]
+    # remove all non-ways
+    members_ways = [m for m in members if m["type"] == "way"]
 
-                if f_inp and l_inp:
-                    # closing segment
-                    if first == points[-1]:
-                        points.extend(curr_segm)
-                    elif last == points[-1]:
-                        points.extend(curr_segm[::-1])
-                    else:
-                        raise Exception("Points not consecutive, check!")
-                elif f_inp:
-                    if ignore_enclaves and not f_iprev:
-                        ignored.extend(curr_segm)
-                        continue
-                    # next segment, correct order
+    members_others = [m for m in members if m["type"] != "way"]
+    members_nodes = [m for m in members_others if m["type"] == "node"]
+    nodes = [[m["lon"], m["lat"]] for m in members_nodes]
+
+    # TODO: handle rest members
+    """
+      "type": "relation",
+          "ref": 3720495,
+          "role": "subarea"
+        },
+    """
+    member_rest = [m for m in members_others if m["type"] != "node"]
+    # assert len(member_rest) == 0, f"rest should be empty, but is {member_rest}"
+
+    for i, m in enumerate(members_ways[:]):
+        curr_segm = [[p["lon"], p["lat"]] for p in m["geometry"]]
+        if len(points):
+            first = curr_segm[0]
+            f_inp = first in points
+            f_iprev = first == points[-1]
+            last = curr_segm[-1]
+            l_inp = last in points
+            l_iprev = last == points[-1]
+
+            if f_inp and l_inp:
+                # closing segment
+                if first == points[-1]:
                     points.extend(curr_segm)
-                elif l_inp:
-                    if ignore_enclaves and not l_iprev:
-                        ignored.extend(curr_segm)
-                        continue
-                    # next segment, wrong order
+                elif last == points[-1]:
                     points.extend(curr_segm[::-1])
                 else:
-                    # if spec in curr_segm:
-                    #     pdb.set_trace()
-                    # found an isolated border part -> don't add to main polygon
-                    if ignore_enclaves and (first in ignored or last in ignored):
-                        ignored.extend(curr_segm)
-                        continue
-                    if exclaves:
-                        last_exclave = exclaves[-1]
-                        f_ine = first in last_exclave
-                        l_ine = last in last_exclave
+                    raise Exception("Points not consecutive, check!")
+            elif f_inp:
+                if ignore_enclaves and not f_iprev:
+                    ignored.extend(curr_segm)
+                    continue
+                # next segment, correct order
+                points.extend(curr_segm)
+            elif l_inp:
+                if ignore_enclaves and not l_iprev:
+                    ignored.extend(curr_segm)
+                    continue
+                # next segment, wrong order
+                points.extend(curr_segm[::-1])
+            else:
+                # found an isolated border part -> don't add to main polygon
+                if ignore_enclaves and (first in ignored or last in ignored):
+                    ignored.extend(curr_segm)
+                    continue
+                if exclaves:
+                    last_exclave = exclaves[-1]
+                    f_ine = first in last_exclave
+                    l_ine = last in last_exclave
 
-                        if f_ine and l_ine:
-                            if first == last_exclave[-1]:
-                                # closing segment, correct order
-                                exclaves[-1].extend(curr_segm)
-                            elif last == last_exclave[-1]:
-                                # closing segment, wrong order
-                                exclaves[-1].extend(curr_segm[::-1])
-                            else:
-                                # potential unknown case
-                                raise Exception("Points not consecutive, check!")
-                        elif f_ine:
-                            # next exclave segment, correct order
+                    if f_ine and l_ine:
+                        if first == last_exclave[-1]:
+                            # closing segment, correct order
                             exclaves[-1].extend(curr_segm)
-                        elif l_ine:
-                            # next exclave segment, wrong order
+                        elif last == last_exclave[-1]:
+                            # closing segment, wrong order
                             exclaves[-1].extend(curr_segm[::-1])
                         else:
-                            # new enclave
-                            exclaves.append(curr_segm)
+                            # potential unknown case
+                            raise Exception("Points not consecutive, check!")
+                    elif f_ine:
+                        # next exclave segment, correct order
+                        exclaves[-1].extend(curr_segm)
+                    elif l_ine:
+                        # next exclave segment, wrong order
+                        exclaves[-1].extend(curr_segm[::-1])
                     else:
-                        # first enclave
+                        # new enclave
                         exclaves.append(curr_segm)
-            else:
-                # assumes first segment is not special (exclave, island, etc)
-                # check order of first segment explicitly
-
-                first = m["geometry"][0]
-                first = [first["lon"], first["lat"]]
-                last = m["geometry"][-1]
-                last = [last["lon"], last["lat"]]
-
-                next_segm = [[p["lon"], p["lat"]] for p in members[i+1]["geometry"]]
-
-                if last in next_segm:
-                    # correct order
-                    points.extend(curr_segm)
-                elif first in next_segm:
-                    # first segment in wrong order
-                    points.extend(curr_segm[::-1])
                 else:
-                    # assuming the order of border segments is correct, the first segment is already an enclave
+                    # first enclave
                     exclaves.append(curr_segm)
+        else:
+            # assumes first segment is not special (exclave, island, etc)
+            # check order of first segment explicitly
+
+
+            first = m["geometry"][0]
+            first = [first["lon"], first["lat"]]
+            last = m["geometry"][-1]
+            last = [last["lon"], last["lat"]]
+
+            # get next segment
+            # TODO: handle edge case at end
+            try:
+                next_segm = [[p["lon"], p["lat"]] for p in members_ways[i+1]["geometry"]]
+            except Exception as e:
+                print("problem with next segment")
+                print(members_ways[i+1])
+                raise e
+
+            if last in next_segm:
+                # correct order
+                points.extend(curr_segm)
+            elif first in next_segm:
+                # first segment in wrong order
+                points.extend(curr_segm[::-1])
+            else:
+                # assuming the order of border segments is correct, the first segment is already an enclave
+                exclaves.append(curr_segm)
 
     return points, exclaves, nodes, bounds
